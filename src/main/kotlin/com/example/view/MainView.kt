@@ -2,179 +2,103 @@ package com.example.view
 
 import javafx.application.Platform
 import javafx.geometry.Pos
-import javafx.scene.control.Button
-import javafx.scene.control.TextField
 import javafx.scene.control.Toggle
-import javafx.scene.control.ToggleGroup
 import javafx.scene.image.Image
-import javafx.scene.image.ImageView
 import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.scene.text.Text
-import javafx.scene.text.TextFlow
 import model.WordleModel
 import tornadofx.*
 import kotlin.concurrent.thread
 
-class MainView : View("Wordle"){
+class MainView : View("Wordle") {
 
     init {
-        FX.primaryStage.icons += Image(MainView::class.java.classLoader.getResource("icon.png").toString())
+        FX.primaryStage.icons += Image(MainView::class.java.classLoader.getResource("icon.png")!!.toString())
     }
 
-    private fun enterWord() {
-        val nowWordNumber = model.tries
-        val printedText = textfield.text
-        textfield.text = ""
-        val nowWord = wordsList[nowWordNumber]
-
-        if (model.isWordCorrect(printedText)) {
-            if (!model.isLosed() && !model.isWon()) {
-                val colorsList = model.getColors(printedText)
-                for (i in 0 until 5) {
-                    (nowWord.children[i] as Text).text = printedText[i].toString()
-                    when (colorsList[i]) {
-                        WordleModel.TextColors.GREY -> {
-                            nowWord.children[i].style {
-                                fill = Color.GREY
-                            }
-                        }
-                        WordleModel.TextColors.YELLOW -> {
-                            nowWord.children[i].style {
-                                fill = Color.ORANGE
-                            }
-                        }
-                        WordleModel.TextColors.GREEN -> {
-                            nowWord.children[i].style {
-                                fill = Color.GREEN
-                            }
-                        }
-                    }
-                }
-            }
-
-            model.toNextTry()
-        }
-        if (model.isLosed() || model.isWon()) endGame()
-
-    }
-
-    fun endGame() {
-        endGameWindow.style {
-            visibility = FXVisibility.VISIBLE
-        }
-        if (model.isLosed())
-            endLabel.text += "Ты проигал"
-        if (model.isWon()) {
-            endLabel.text += "Ты победил\n"
-            endLabel.text += "Время: ${System.currentTimeMillis().toInt() / 1000 - model.startTime} секунд"
-        }
-        model.timer = 0
-    }
-
-    val windowHeight = 400.0
-    val windowWidth = 400.0
-
-    val model = WordleModel()
-    val textfield = TextField()
-    val enterButton = Button("Подтвердить")
-    val wordsList = MutableList(6) {
-        TextFlow(*MutableList(5) {
-            Text("-").apply {
-                font = Font.font(24.0)
-            }
-        }.toTypedArray())
-    }
-
-    val endLabel = label("Игра окончена:\n") {
+    private val textColorToColor = mapOf<WordleModel.TextColors, Color>(
+        WordleModel.TextColors.GREY to Color.GREY,
+        WordleModel.TextColors.YELLOW to Color.ORANGE,
+        WordleModel.TextColors.GREEN to Color.GREEN,
+    )
+    private val windowHeight = 400.0
+    private val windowWidth = 400.0
+    private val model = WordleModel()
+    private val endLabel = label("Игра окончена:\n") {
         font = Font.font(20.0)
         style {
             backgroundColor += Color.WHITE
         }
     }
-
-    val timerLabel = label("40")
-    val endGameWindow = vbox {
+    private val endGameWindow = vbox {
         setPrefSize(200.0, 200.0)
         this += endLabel
     }
+    val tutorialView = find(TutorialView::class)
+    val gameView = find(GameView::class)
+    fun startTimerThread() {
+        val uiThread = Thread.currentThread()
+        thread {
+            while (true) {
+                if (model.isGameHard()) {
+                    println(model.timer)
+                    if (!model.isTimerStopped()) {
+                        Platform.runLater {
+                            gameView.timerLabel.text = "${model.timer}"
+                        }
+                        model.updateTimer()
+                    }
+                }
+                Thread.sleep(1000)
+                if (!uiThread.isAlive) {
+                    break
+                }
+            }
+        }
+    }
 
-    val difficultLevelBox = ToggleGroup()
+    private fun enterWord() {
+        val printedText = gameView.textfield.text
+        gameView.textfield.text = ""
+        val nowWord = gameView.wordsList[model.tries]
+        if (model.isWordCorrect(printedText)) {
+            if (!model.isLosed() && !model.isWon()) {
+                for (i in 0 until 5) {
+                    (nowWord.children[i] as Text).text = printedText[i].toString()
+                    nowWord.children[i].style {
+                        fill = textColorToColor[model.getColors(printedText)[i]] ?: Color.GREY
+                    }
+                }
+            }
+            model.toNextTry()
+        }
+        if (model.isLosed() || model.isWon()) endGame()
+    }
 
-    fun restart() {
+    private fun endGame() {
+        endLabel.text = "Игра окончена:\nТы проигал"
+        if (model.isWon())
+            endLabel.text = "Игра окончена:\nТы победил\nВремя: ${
+                System.currentTimeMillis().toInt() / 1000 - model.startTime
+            } секунд"
+        endGameWindow.show()
+        model.timer = 0
+    }
+
+
+    private fun restart() {
         model.restart()
-        for (i in 0 until wordsList.size) {
-            for (node in wordsList[i].children) {
+        for (i in 0 until gameView.wordsList.size) {
+            for (node in gameView.wordsList[i].children) {
                 (node as Text).text = "-"
                 (node).style {
                     fill = Color.BLACK
                 }
             }
         }
-        endLabel.text = "Игра окончена\n"
-
-        endGameWindow.style {
-            visibility = FXVisibility.HIDDEN
-        }
+        endGameWindow.hide()
     }
-
-    val mainScene = vbox {
-
-        style {
-            visibility = FXVisibility.HIDDEN
-        }
-        setPrefSize(windowWidth, windowHeight)
-        hbox {
-            label("Подтвердить слово:") {
-                hboxConstraints {
-                    marginRight = 20.0
-                }
-            }
-            this += enterButton.apply {
-                action {
-                    enterWord()
-                }
-            }
-            this += timerLabel.apply {
-                thread {
-                    while (true) {
-                        println("thread_done")
-                        if (model.isGameHard()) {
-                            println(model.timer)
-                            if (!model.isTimerStopped()) {
-                                Platform.runLater {
-                                    text = "${model.timer}"
-                                }
-                                model.updateTimer()
-                            } else {
-                                Platform.runLater {
-                                    endGame()
-                                }
-                            }
-                        }
-                        Thread.sleep(1000)
-                        if (!uiThread.isAlive) {
-                            break;
-                        }
-                    }
-                }
-            }
-
-        }
-        label("Угадайте слово с шести раз:")
-        textfield.setOnKeyPressed {
-            if (it.code.name == "ENTER") {
-                enterWord()
-            }
-        }
-        this += textfield
-
-        for (word in wordsList) {
-            this += word
-        }
-    }
-    val uiThread = Thread.currentThread();
-
 
     fun setDifficulty(toggles: List<Toggle>) {
         if (toggles[0].isSelected) {
@@ -182,66 +106,34 @@ class MainView : View("Wordle"){
         } else {
             model.difficulty = WordleModel.Difficulty.EASY
         }
+        println(model.difficulty.name)
     }
 
     override val root = stackpane {
-        vbox {
-            alignment = Pos.CENTER
-            imageview {
-                image = Image(MainView::class.java.classLoader.getResource("wordle_rules.png").toString())
-            }
-            button("Start game") {
-                alignment = Pos.TOP_LEFT
-                style {
-                    font = Font.font(30.0)
+        setPrefSize(windowWidth, windowHeight)
+        this += tutorialView.apply {
+            startButton.action {
+                setDifficulty(tutorialView.difficultLevelBox.toggles.toList())
+                model.startGame()
+                if (!model.isGameHard()) {
+                    gameView.timerLabel.hide()
+                } else {
+                    startTimerThread()
                 }
-                action {
-                    setDifficulty(difficultLevelBox.toggles.toList())
-                    model.startGame()
-                    if (!model.isGameHard()) {
-                        timerLabel.style {
-                            visibility = FXVisibility.HIDDEN
-                        }
-                    }
-                    mainScene.style {
-                        visibility = FXVisibility.VISIBLE
-                    }
-                    parent.style {
-                        visibility = FXVisibility.HIDDEN
-                    }
+                tutorialView.root.hide()
+                gameView.root.show()
 
-
-
-                }
             }
-            vbox {
-                alignment = Pos.CENTER
-                style {
-                    font = Font.font(20.0)
-                }
-                label("Уровень сложности")
-                hbox {
-                    alignment = Pos.CENTER
-                    radiobutton("Hard (с таймером)", difficultLevelBox) {
-                        hboxConstraints {
-                            marginRight = 30.0
-                        }
-                    }
-                    radiobutton("Easy (без таймера)", difficultLevelBox) {
-                        isSelected = true
-                    }
-                }
-            }
+        }
+        this += gameView.apply {
+            endGame = { this@MainView.endGame() }
+            enterWord = { this@MainView.enterWord() }
 
         }
 
-        this += mainScene
-
         this += endGameWindow.apply {
             alignment = Pos.CENTER
-            style {
-                visibility = FXVisibility.HIDDEN
-            }
+            this.hide()
             button("Начать заново") {
                 action {
                     restart()
