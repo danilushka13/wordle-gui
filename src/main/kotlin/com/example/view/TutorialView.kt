@@ -12,11 +12,13 @@ class TutorialView : View("Tutorial") {
     val startButton = Button()
 
     override val root = vbox {
+        spacing = 15.0
         alignment = Pos.CENTER
         imageview {
             image = Image(MainView::class.java.classLoader.getResource("wordle_rules.png")!!.toString())
         }
         this += startButton.apply {
+            spacing = 10.0
             text = "Start game"
             style {
                 font = Font.font(30.0)
@@ -33,12 +35,19 @@ class TutorialView : View("Tutorial") {
                 radiobutton("Hard (с таймером)", difficultLevelBox) {
                     hboxConstraints {
                         marginRight = 30.0
+                        marginBottom = 10.0
                     }
                 }
                 radiobutton("Easy (без таймера)", difficultLevelBox) {
                     isSelected = true
+                    hboxConstraints {
+                        marginBottom = 10.0
+                    }
                 }
+
+
             }
+
         }
 
     }

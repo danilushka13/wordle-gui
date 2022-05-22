@@ -2,7 +2,9 @@ package com.example.view
 
 import javafx.scene.Parent
 import javafx.scene.control.TextField
+import javafx.scene.paint.Color
 import javafx.scene.text.Font
+import javafx.scene.text.FontWeight
 import javafx.scene.text.Text
 import javafx.scene.text.TextFlow
 import tornadofx.*
@@ -23,23 +25,49 @@ class GameView : View("GameView") {
 
     override val root: Parent = vbox {
         this.hide()
-        hbox {
-            label("Подтвердить слово:") {
+        vbox {
+            label("Угадайте слово с шести раз:") {
                 hboxConstraints {
-                    marginRight = 20.0
+                    marginBottom = 15.0
+                }
+                style {
+                    font = loadFont("/playFont.ttf",20)!!
+                    backgroundColor += Color.ALICEBLUE
                 }
             }
-            button("Подтвердить") {
-                action {
-                    enterWord()
+            hbox {
+                button("Подтвердить") {
+                    action {
+                        enterWord()
+                    }
+                    style {
+                        fontWeight = FontWeight.BLACK
+                        borderColor += box(
+                            all = Color.OLIVE
+                        )
+
+                    }
+                }
+                this += timerLabel.apply {
+                    hboxConstraints {
+                        marginLeft = 100.0
+                    }
+                    style {
+                        backgroundColor += Color.ORANGE
+                    }
                 }
             }
-            this += timerLabel.apply {
-            }
+//            button("Подтвердить") {
+//                action {
+//                    enterWord()
+//                }
+//            }
+//            this += timerLabel.apply {
+//            }
 
         }
 
-        label("Угадайте слово с шести раз:")
+        //label("Угадайте слово с шести раз:")
         textfield.setOnKeyPressed {
             if (it.code.name == "ENTER") {
                 enterWord()
