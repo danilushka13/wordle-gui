@@ -15,7 +15,7 @@ class TutorialView : View("Tutorial") {
         spacing = 15.0
         alignment = Pos.CENTER
         imageview {
-            image = Image(MainView::class.java.classLoader.getResource("wordle_rules.png")!!.toString())
+            image = Image(MainView::class.java.classLoader.getResource("rules.png")!!.toString())
         }
         this += startButton.apply {
             spacing = 10.0
