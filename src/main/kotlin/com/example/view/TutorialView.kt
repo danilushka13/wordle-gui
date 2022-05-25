@@ -14,9 +14,11 @@ class TutorialView : View("Tutorial") {
     override val root = vbox {
         spacing = 15.0
         alignment = Pos.CENTER
+
         imageview {
             image = Image(MainView::class.java.classLoader.getResource("rules.png")!!.toString())
-        }
+        } //картинка с правилами
+
         this += startButton.apply {
             spacing = 10.0
             text = "Start game"

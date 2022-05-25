@@ -27,7 +27,7 @@ class GameView : View("GameView") {
         this.hide()
         vbox {
             label("Угадайте слово с шести раз:") {
-                hboxConstraints {
+                vboxConstraints {
                     marginBottom = 15.0
                 }
                 style {

@@ -63,24 +63,25 @@ class MainView : View("Wordle") {
         gameView.textfield.text = ""
         val nowWord = gameView.wordsList[model.tries]
         if (model.isWordCorrect(printedText)) {
-            if (!model.isLosed() && !model.isWon()) {
+            model.inputWord(printedText)
+            if (!model.isLost() || model.isWon()) {
                 for (i in 0 until 5) {
                     (nowWord.children[i] as Text).text = printedText[i].toString()
                     nowWord.children[i].style {
-                        fill = textColorToColor[model.getColors(printedText)[i]] ?: Color.GREY
+                        fill = textColorToColor[model.lastWordColors[i]] ?: Color.GREY
                     }
                 }
             }
             model.toNextTry()
         }
-        if (model.isLosed() || model.isWon()) endGame()
+        if (model.isLost() || model.isWon()) endGame()
     }
 
     private fun endGame() {
         endLabel.text = "Игра окончена:\nТы проигал"
         if (model.isWon())
             endLabel.text = "Игра окончена:\nТы победил\nВремя: ${
-                System.currentTimeMillis().toInt() / 1000 - model.startTime
+                System.currentTimeMillis() / 1000 - model.startTime
             } секунд"
         endGameWindow.show()
         model.timer = 0
@@ -88,7 +89,7 @@ class MainView : View("Wordle") {
 
 
     private fun restart() {
-        model.restart()
+        model.start()
         for (i in 0 until gameView.wordsList.size) {
             for (node in gameView.wordsList[i].children) {
                 (node as Text).text = "-"
@@ -102,11 +103,10 @@ class MainView : View("Wordle") {
 
     fun setDifficulty(toggles: List<Toggle>) {
         if (toggles[0].isSelected) {
-            model.difficulty = WordleModel.Difficulty.HARD
+            model.makeGameHard()
         } else {
-            model.difficulty = WordleModel.Difficulty.EASY
+            model.makeGameEasy()
         }
-        println(model.difficulty.name)
     }
 
     override val root = stackpane {
@@ -114,7 +114,7 @@ class MainView : View("Wordle") {
         this += tutorialView.apply {
             startButton.action {
                 setDifficulty(tutorialView.difficultLevelBox.toggles.toList())
-                model.startGame()
+                model.start()
                 if (!model.isGameHard()) {
                     gameView.timerLabel.hide()
                 } else {
